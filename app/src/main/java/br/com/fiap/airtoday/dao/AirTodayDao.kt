@@ -10,11 +10,11 @@ import br.com.fiap.airtoday.model.AirToday
 interface AirTodayDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAirQuality(data: AirToday)
+    fun salvar(data: AirToday)
 
     @Query("SELECT * FROM air_today ORDER BY timestamp DESC")
-    suspend fun getAllAirQuality(): List<AirToday>
+    fun listarTodasQualidadesAr(): List<AirToday>
 
     @Query("DELETE FROM air_today")
-    suspend fun clearAirQualityData()
+    fun limparQualidadeArData()
 }

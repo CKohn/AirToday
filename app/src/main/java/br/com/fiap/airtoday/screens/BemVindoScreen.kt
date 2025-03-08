@@ -30,7 +30,6 @@ fun BemVindoScreen(navController: NavController) {
     var permissionGranted by remember { mutableStateOf(checkLocationPermission(context)) }
     var location by remember { mutableStateOf<Location?>(null) }
 
-    // Gerenciador de localização
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     LaunchedEffect(Unit) {
@@ -85,7 +84,6 @@ fun BemVindoScreen(navController: NavController) {
             Text(text = if (permissionGranted) "Obter Localização" else "Permitir Localização")
         }
 
-        // Exibir a localização obtida
         location?.let {
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = "Sua localização: ${it.latitude}, ${it.longitude}")
@@ -93,7 +91,6 @@ fun BemVindoScreen(navController: NavController) {
     }
 }
 
-// Verifica se a permissão de localização já foi concedida
 fun checkLocationPermission(context: Context): Boolean {
     return ContextCompat.checkSelfPermission(
         context,
@@ -101,7 +98,6 @@ fun checkLocationPermission(context: Context): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 }
 
-// Solicita a permissão de localização ao usuário
 fun requestLocationPermission(activity: Activity, onPermissionGranted: () -> Unit) {
     ActivityCompat.requestPermissions(
         activity,
@@ -115,7 +111,6 @@ fun requestLocationPermission(activity: Activity, onPermissionGranted: () -> Uni
     }
 }
 
-// Obtém a última localização conhecida do usuário
 fun getLastKnownLocation(
     context: Context,
     fusedLocationClient: FusedLocationProviderClient,
@@ -131,7 +126,6 @@ fun getLastKnownLocation(
                 if (location != null) {
                     onLocationReceived(location)
                 } else {
-                    // Se a última localização for nula, solicitar uma nova atualização
                     val locationRequest = LocationRequest.Builder(
                         Priority.PRIORITY_HIGH_ACCURACY, 1000
                     ).setMinUpdateIntervalMillis(500).build()
@@ -152,7 +146,7 @@ fun getLastKnownLocation(
             }
             .addOnFailureListener { exception ->
                 println("Erro ao obter localização: ${exception.message}")
-                onLocationReceived(null) // Retorna null se falhar
+                onLocationReceived(null)
             }
     } else {
         println("Permissão de localização não concedida.")
