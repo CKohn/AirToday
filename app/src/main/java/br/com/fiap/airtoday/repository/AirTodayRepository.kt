@@ -9,9 +9,6 @@ object AirTodayRepository {
 
     private const val API_KEY = "f6014cc8ee00cccbf35170333944b345"
 
-    /**
-     * Obtém os dados combinados de qualidade do ar (AQI), temperatura, umidade e nome da cidade.
-     */
     suspend fun listaQualidadesAr(lat: Double, lon: Double): AirToday? {
         return withContext(Dispatchers.IO) {
             try {
@@ -36,9 +33,6 @@ object AirTodayRepository {
         }
     }
 
-    /**
-     * Obtém os dados de temperatura e umidade usando Retrofit.
-     */
     private suspend fun obterDadosClimaticos(lat: Double, lon: Double): Pair<Double?, Int?>? {
         return withContext(Dispatchers.IO) {
             try {
@@ -57,9 +51,6 @@ object AirTodayRepository {
         }
     }
 
-    /**
-     * Obtém o Índice de Qualidade do Ar (AQI) usando Retrofit.
-     */
     private suspend fun obterIndiceDeQualidadeDoAr(lat: Double, lon: Double): Int? {
         return withContext(Dispatchers.IO) {
             try {
@@ -79,9 +70,6 @@ object AirTodayRepository {
         }
     }
 
-    /**
-     * Obtém o nome da cidade usando Retrofit.
-     */
     suspend fun obterNomeCidade(lat: Double, lon: Double): String {
         return withContext(Dispatchers.IO) {
             try {

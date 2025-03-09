@@ -51,15 +51,11 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
 
-    /**
-     * Obtém os dados da API.
-     */
     fun fetchAirQualityData() {
         coroutineScope.launch(Dispatchers.IO) {
             isLoading = true
             hasError = false
             try {
-                // 🔹 Obtém a localização mais recente antes de buscar os dados da API
                 val lastLocation = fusedLocationClient.getCurrentLocation(
                     com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
                     null
@@ -70,7 +66,6 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
                     longitude = it.longitude
                 }
 
-                // 🔹 Agora busca os dados atualizados da API
                 val airToday = AirTodayRepository.listaQualidadesAr(latitude, longitude)
 
                 withContext(Dispatchers.Main) {
@@ -92,14 +87,10 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
         }
     }
 
-    // Obtém os dados assim que a tela carregar
     LaunchedEffect(Unit) {
         fetchAirQualityData()
     }
 
-    /**
-     * Interface gráfica do Dashboard.
-     */
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(stringResource(id = R.string.dashboard_title)) })

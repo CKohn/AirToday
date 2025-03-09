@@ -8,8 +8,8 @@ import androidx.room.PrimaryKey
 data class AirToday(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val city: String,
-    val aqi: Int, // Índice de qualidade do ar (AQI)
+    val aqi: Int,
     val temperature: Double?,
     val humidity: Int?,
-    val timestamp: Long // Data e hora do registro
+    val timestamp: Long
 )
