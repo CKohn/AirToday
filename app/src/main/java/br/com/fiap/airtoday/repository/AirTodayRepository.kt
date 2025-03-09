@@ -4,17 +4,10 @@ import android.util.Log
 import br.com.fiap.airtoday.model.AirToday
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 object AirTodayRepository {
 
     private const val API_KEY = "f6014cc8ee00cccbf35170333944b345"
-    private const val BASE_URL_WEATHER = "https://api.openweathermap.org/data/2.5/weather"
-    private const val BASE_URL_AIR_POLLUTION = "https://api.openweathermap.org/data/2.5/air_pollution"
-    private const val BASE_URL_REVERSE_GEOCODING = "http://api.openweathermap.org/geo/1.0/reverse"
 
     /**
      * Obtém os dados combinados de qualidade do ar (AQI), temperatura, umidade e nome da cidade.
@@ -29,7 +22,7 @@ object AirTodayRepository {
                 if (weatherData != null && aqi != null) {
                     return@withContext AirToday(
                         city = cityName,
-                        aqi = aqi, // 🔹 Apenas o índice de qualidade do ar
+                        aqi = aqi,
                         temperature = weatherData.first,
                         humidity = weatherData.second,
                         timestamp = System.currentTimeMillis()
@@ -44,91 +37,66 @@ object AirTodayRepository {
     }
 
     /**
-     * Obtém os dados de temperatura e umidade a partir da API OpenWeather `weather`.
+     * Obtém os dados de temperatura e umidade usando Retrofit.
      */
-    private fun obterDadosClimaticos(lat: Double, lon: Double): Pair<Double?, Int?>? {
-        return try {
-            val urlString = "$BASE_URL_WEATHER?lat=$lat&lon=$lon&units=metric&appid=$API_KEY"
-            val url = URL(urlString)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val jsonObject = JSONObject(response)
-                val main = jsonObject.getJSONObject("main")
-                val temperature = main.getDouble("temp")
-                val humidity = main.getInt("humidity")
-
-                Pair(temperature, humidity)
-            } else {
-                Log.e("API_ERROR", "Erro na requisição de clima: $responseCode")
-                null
+    private suspend fun obterDadosClimaticos(lat: Double, lon: Double): Pair<Double?, Int?>? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.api.getWeather(lat, lon, "metric", API_KEY)
+                if (response.isSuccessful) {
+                    val data = response.body()
+                    return@withContext Pair(data?.main?.temperature, data?.main?.humidity)
+                } else {
+                    Log.e("API_ERROR", "Erro ao buscar dados climáticos: ${response.code()}")
+                    return@withContext null
+                }
+            } catch (e: Exception) {
+                Log.e("API_ERROR", "Erro ao obter dados climáticos: ${e.message}")
+                return@withContext null
             }
-        } catch (e: Exception) {
-            Log.e("API_ERROR", "Erro ao obter dados climáticos: ${e.message}")
-            null
         }
     }
 
     /**
-     * Obtém o Índice de Qualidade do Ar (AQI) a partir da API OpenWeather `air_pollution`.
+     * Obtém o Índice de Qualidade do Ar (AQI) usando Retrofit.
      */
-    private fun obterIndiceDeQualidadeDoAr(lat: Double, lon: Double): Int? {
-        return try {
-            val urlString = "$BASE_URL_AIR_POLLUTION?lat=$lat&lon=$lon&appid=$API_KEY"
-            val url = URL(urlString)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val jsonObject = JSONObject(response)
-                val list = jsonObject.getJSONArray("list")
-                if (list.length() == 0) return null
-
-                val data = list.getJSONObject(0)
-                val main = data.getJSONObject("main")
-
-                main.getInt("aqi") // 🔹 Retorna apenas o AQI
-            } else {
-                Log.e("API_ERROR", "Erro na requisição de qualidade do ar: $responseCode")
-                null
+    private suspend fun obterIndiceDeQualidadeDoAr(lat: Double, lon: Double): Int? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.api.getAirQuality(lat, lon, API_KEY)
+                if (response.isSuccessful) {
+                    val airQualityResponse = response.body()
+                    val list = airQualityResponse?.list
+                    if (!list.isNullOrEmpty()) {
+                        return@withContext list[0].main.aqi
+                    }
+                }
+                return@withContext null
+            } catch (e: Exception) {
+                Log.e("API_ERROR", "Erro ao obter qualidade do ar: ${e.message}")
+                return@withContext null
             }
-        } catch (e: Exception) {
-            Log.e("API_ERROR", "Erro ao obter qualidade do ar: ${e.message}")
-            null
         }
     }
 
     /**
-     * Obtém o nome da cidade a partir das coordenadas (latitude/longitude) usando a API OpenWeather Reverse Geocoding.
+     * Obtém o nome da cidade usando Retrofit.
      */
     suspend fun obterNomeCidade(lat: Double, lon: Double): String {
         return withContext(Dispatchers.IO) {
             try {
-                val urlString = "https://api.openweathermap.org/geo/1.0/reverse?lat=$lat&lon=$lon&limit=1&appid=$API_KEY"
-                val url = URL(urlString)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonArray = JSONArray(response)
-
-                    if (jsonArray.length() > 0) {
-                        return@withContext jsonArray.getJSONObject(0).getString("name") // Obtém o nome da cidade corretamente
+                val response = RetrofitClient.api.getCityName(lat, lon, 1, API_KEY)
+                if (response.isSuccessful) {
+                    val list = response.body()
+                    if (!list.isNullOrEmpty()) {
+                        return@withContext list[0].name
                     }
                 }
-                return@withContext "Localização Desconhecida" // Retorno caso não encontre nada
+                return@withContext "Localização Desconhecida"
             } catch (e: Exception) {
                 Log.e("API_ERROR", "Erro ao obter nome da cidade: ${e.message}")
                 return@withContext "Localização Desconhecida"
             }
         }
     }
-
 }

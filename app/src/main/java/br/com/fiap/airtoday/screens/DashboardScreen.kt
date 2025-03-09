@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -89,33 +92,6 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
         }
     }
 
-
-    /**
-     * Obtém a localização do usuário.
-     */
-    @SuppressLint("MissingPermission")
-    fun updateLocation() {
-        if (ActivityCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            fusedLocationClient.getCurrentLocation(
-                com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-                null
-            ).addOnSuccessListener { location: Location? ->
-                if (location != null) {
-                    latitude = location.latitude
-                    longitude = location.longitude
-                    fetchAirQualityData() // Atualiza os dados após obter a localização
-                } else {
-                    println("Erro ao obter localização atual.")
-                }
-            }
-        } else {
-            println("Permissão de localização não concedida!")
-        }
-    }
-
     // Obtém os dados assim que a tela carregar
     LaunchedEffect(Unit) {
         fetchAirQualityData()
@@ -136,70 +112,76 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+            AnimatedVisibility(
+                visible = !isLoading,
+                enter = fadeIn(animationSpec = tween(500)) + scaleIn(animationSpec = tween(500)),
+                exit = fadeOut(animationSpec = tween(300))
             ) {
-                Column(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
-                    Text(
-                        text = "${stringResource(id = R.string.city_label)} ${cityName ?: stringResource(id = R.string.unknown_location)}",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = stringResource(id = R.string.latitude_longitude_label, latitude, longitude),
-                        fontSize = 14.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    if (isLoading) {
-                        CircularProgressIndicator()
-                    } else if (hasError) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = stringResource(id = R.string.error_loading_data),
+                            text = "${stringResource(id = R.string.city_label)} ${cityName ?: stringResource(id = R.string.unknown_location)}",
                             fontSize = 18.sp,
-                            color = Color.Red
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
-                        airQualityIndex?.let { aqi ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        when (aqi) {
-                                            1 -> Color(0xFF00E400) // Verde - Boa
-                                            2 -> Color(0xFFFFFF00) // Amarelo - Moderada
-                                            3 -> Color(0xFFFFA500) // Laranja - Ruim
-                                            4 -> Color(0xFFFF0000) // Vermelho - Muito Ruim
-                                            5 -> Color(0xFF800080) // Roxo - Perigoso
-                                            else -> Color.Gray
-                                        },
-                                        shape = RoundedCornerShape(10.dp)
+                        Text(
+                            text = stringResource(id = R.string.latitude_longitude_label, latitude, longitude),
+                            fontSize = 14.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (hasError) {
+                            Text(
+                                text = stringResource(id = R.string.error_loading_data),
+                                fontSize = 18.sp,
+                                color = Color.Red
+                            )
+                        } else {
+                            airQualityIndex?.let { aqi ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = when (aqi) {
+                                                    1 -> listOf(Color(0xFF00E400), Color(0xFF008000)) // Verde
+                                                    2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00)) // Amarelo
+                                                    3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E)) // Laranja
+                                                    4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000)) // Vermelho
+                                                    5 -> listOf(Color(0xFF800080), Color(0xFF4B0082)) // Roxo
+                                                    else -> listOf(Color.Gray, Color.DarkGray)
+                                                }
+                                            ),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        .padding(12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${stringResource(id = R.string.aqi_label)} $aqi",
+                                        fontSize = 22.sp,
+                                        color = Color.White
                                     )
-                                    .padding(12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${stringResource(id = R.string.aqi_label)} $aqi",
-                                    fontSize = 22.sp,
-                                    color = Color.White
-                                )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
+                                Text(stringResource(id = R.string.temperature_label, temperature ?: 0.0), fontSize = 16.sp)
+                                Text(stringResource(id = R.string.humidity_label, humidity ?: 0), fontSize = 16.sp)
                             }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
-                            Text(stringResource(id = R.string.temperature_label, temperature ?: 0.0), fontSize = 16.sp)
-                            Text(stringResource(id = R.string.humidity_label, humidity ?: 0), fontSize = 16.sp)
                         }
                     }
                 }
