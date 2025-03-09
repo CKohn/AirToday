@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -30,22 +31,21 @@ fun BemVindoScreen(navController: NavController) {
     val context = LocalContext.current
     var permissionGranted by remember { mutableStateOf(checkLocationPermission(context)) }
     var userLocation by remember { mutableStateOf<Location?>(null) }
+    var locationDenied by remember { mutableStateOf(false) }
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    LaunchedEffect(Unit) {
-        permissionGranted = checkLocationPermission(context)
-    }
-
-    fun fetchLocation() {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+    LaunchedEffect(permissionGranted) {
+        if (permissionGranted) {
+            fetchLocation(context, fusedLocationClient) { location ->
+                userLocation = location
                 if (location != null) {
-                    userLocation = location
+                    Log.d("LOCATION_SUCCESS", "Latitude: ${location.latitude}, Longitude: ${location.longitude}")
+                    navController.navigate("dashboard/${location.latitude}/${location.longitude}")
                 }
-            }.addOnFailureListener {
-                userLocation = null
             }
+        } else {
+            locationDenied = true
         }
     }
 
@@ -87,7 +87,7 @@ fun BemVindoScreen(navController: NavController) {
                 onClick = {
                     requestLocationPermission(context as Activity) {
                         permissionGranted = true
-                        fetchLocation()
+                        locationDenied = false
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -98,21 +98,16 @@ fun BemVindoScreen(navController: NavController) {
             ) {
                 Text(stringResource(id = R.string.allow_location))
             }
-        } else {
+        } else if (locationDenied) {
             Button(
-                onClick = {
-                    fetchLocation()
-                    userLocation?.let {
-                        navController.navigate("dashboard/${it.latitude}/${it.longitude}")
-                    }
-                },
+                onClick = { locationDenied = false }, // Apenas reseta a tela para tentar de novo
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF025930),
+                    containerColor = Color.Red,
                     contentColor = Color.White
                 )
             ) {
-                Text(stringResource(id = R.string.go_to_dashboard))
+                Text("Sem permissão de localização")
             }
         }
     }
@@ -141,5 +136,50 @@ fun requestLocationPermission(activity: Activity, onPermissionGranted: () -> Uni
     if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION)
         == PackageManager.PERMISSION_GRANTED) {
         onPermissionGranted()
+    }
+}
+
+/**
+ * Obtém a localização do usuário.
+ */
+fun fetchLocation(context: Context, fusedLocationClient: FusedLocationProviderClient, onLocationReceived: (Location?) -> Unit) {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        // Tenta pegar a última localização salva
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                onLocationReceived(location)
+            } else {
+                // Se a última localização for null, solicitar uma nova
+                Log.e("LOCATION_ERROR", "Última localização não encontrada, solicitando uma nova...")
+
+                val locationRequest = LocationRequest.create().apply {
+                    priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+                    interval = 1000
+                    fastestInterval = 500
+                    numUpdates = 1
+                }
+
+                val locationCallback = object : LocationCallback() {
+                    override fun onLocationResult(locationResult: LocationResult) {
+                        locationResult.lastLocation?.let {
+                            Log.d("LOCATION_SUCCESS", "Nova localização obtida: ${it.latitude}, ${it.longitude}")
+                            onLocationReceived(it)
+                        } ?: run {
+                            Log.e("LOCATION_ERROR", "Erro ao obter nova localização")
+                            onLocationReceived(null)
+                        }
+                    }
+                }
+
+                val locationProvider = LocationServices.getFusedLocationProviderClient(context)
+                locationProvider.requestLocationUpdates(locationRequest, locationCallback, null)
+            }
+        }.addOnFailureListener {
+            Log.e("LOCATION_ERROR", "Erro ao obter última localização: ${it.message}")
+            onLocationReceived(null)
+        }
+    } else {
+        Log.e("LOCATION_ERROR", "Permissão de localização negada")
+        onLocationReceived(null)
     }
 }
