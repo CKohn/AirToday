@@ -7,13 +7,19 @@
     <string name="allow_location">Allow Location</string>
     <string name="go_to_dashboard">Go to Dashboard</string>
 
-    <!-- Textos da tela Dashboard -->
+    <!-- Dashboard -->
     <string name="dashboard_title">Air Quality</string>
-    <string name="loading_data">Loading data...</string>
-    <string name="error_loading_data">Error loading data.</string>
-    <string name="error_fetching_data">Error fetching data.</string>
-    <string name="aqi_label">Air Quality Index: %d</string>
-    <string name="components_label">Air Pollution Components:</string>
-    <string name="last_update">Last update: %s</string>
+    <string name="city_label">City:</string>
+    <string name="latitude_longitude_label">Latitude: %1$.4f | Longitude: %2$.4f</string>
+    <string name="aqi_label">AQI:</string>
+    <string name="temperature_label">Temperature: %1$.1f°C</string>
+    <string name="humidity_label">Humidity: %1$d%%</string>
+    <string name="last_update">Last update: %1$s</string>
+
+    <!-- Buttons -->
     <string name="refresh_data">Refresh Data</string>
+
+    <!-- Errors -->
+    <string name="error_loading_data">Error loading data. Please try again.</string>
+    <string name="unknown_location">Unknown Location</string>
 </resources>

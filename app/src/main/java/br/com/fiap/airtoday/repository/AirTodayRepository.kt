@@ -4,20 +4,112 @@ import android.util.Log
 import br.com.fiap.airtoday.model.AirToday
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 object AirTodayRepository {
 
-    private const val API_KEY = "f6014cc8ee00cccbf35170333944b345" // 🔹 Substitua pelo seu token real
-    private const val BASE_URL = "https://api.openweathermap.org/data/2.5/air_pollution"
+    private const val API_KEY = "f6014cc8ee00cccbf35170333944b345"
+    private const val BASE_URL_WEATHER = "https://api.openweathermap.org/data/2.5/weather"
+    private const val BASE_URL_AIR_POLLUTION = "https://api.openweathermap.org/data/2.5/air_pollution"
+    private const val BASE_URL_REVERSE_GEOCODING = "http://api.openweathermap.org/geo/1.0/reverse"
 
+    /**
+     * Obtém os dados combinados de qualidade do ar (AQI), temperatura, umidade e nome da cidade.
+     */
     suspend fun listaQualidadesAr(lat: Double, lon: Double): AirToday? {
         return withContext(Dispatchers.IO) {
             try {
-                val urlString = "$BASE_URL?lat=$lat&lon=$lon&appid=$API_KEY"
-                Log.d("API_REQUEST", "URL: $urlString") // 🔹 Debug para ver a URL gerada
+                val cityName = obterNomeCidade(lat, lon)
+                val aqi = obterIndiceDeQualidadeDoAr(lat, lon)
+                val weatherData = obterDadosClimaticos(lat, lon)
+
+                if (weatherData != null && aqi != null) {
+                    return@withContext AirToday(
+                        city = cityName,
+                        aqi = aqi, // 🔹 Apenas o índice de qualidade do ar
+                        temperature = weatherData.first,
+                        humidity = weatherData.second,
+                        timestamp = System.currentTimeMillis()
+                    )
+                }
+                return@withContext null
+            } catch (e: Exception) {
+                Log.e("API_ERROR", "Erro ao buscar dados: ${e.message}")
+                return@withContext null
+            }
+        }
+    }
+
+    /**
+     * Obtém os dados de temperatura e umidade a partir da API OpenWeather `weather`.
+     */
+    private fun obterDadosClimaticos(lat: Double, lon: Double): Pair<Double?, Int?>? {
+        return try {
+            val urlString = "$BASE_URL_WEATHER?lat=$lat&lon=$lon&units=metric&appid=$API_KEY"
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val jsonObject = JSONObject(response)
+                val main = jsonObject.getJSONObject("main")
+                val temperature = main.getDouble("temp")
+                val humidity = main.getInt("humidity")
+
+                Pair(temperature, humidity)
+            } else {
+                Log.e("API_ERROR", "Erro na requisição de clima: $responseCode")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("API_ERROR", "Erro ao obter dados climáticos: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Obtém o Índice de Qualidade do Ar (AQI) a partir da API OpenWeather `air_pollution`.
+     */
+    private fun obterIndiceDeQualidadeDoAr(lat: Double, lon: Double): Int? {
+        return try {
+            val urlString = "$BASE_URL_AIR_POLLUTION?lat=$lat&lon=$lon&appid=$API_KEY"
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val jsonObject = JSONObject(response)
+                val list = jsonObject.getJSONArray("list")
+                if (list.length() == 0) return null
+
+                val data = list.getJSONObject(0)
+                val main = data.getJSONObject("main")
+
+                main.getInt("aqi") // 🔹 Retorna apenas o AQI
+            } else {
+                Log.e("API_ERROR", "Erro na requisição de qualidade do ar: $responseCode")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("API_ERROR", "Erro ao obter qualidade do ar: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Obtém o nome da cidade a partir das coordenadas (latitude/longitude) usando a API OpenWeather Reverse Geocoding.
+     */
+    suspend fun obterNomeCidade(lat: Double, lon: Double): String {
+        return withContext(Dispatchers.IO) {
+            try {
+                val urlString = "https://api.openweathermap.org/geo/1.0/reverse?lat=$lat&lon=$lon&limit=1&appid=$API_KEY"
                 val url = URL(urlString)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
@@ -25,45 +117,18 @@ object AirTodayRepository {
                 val responseCode = connection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    Log.d("API_RESPONSE", response) // 🔹 Log da resposta da API
-                    return@withContext parseJson(response)
-                } else {
-                    Log.e("API_ERROR", "Erro na requisição: $responseCode")
-                    return@withContext null
+                    val jsonArray = JSONArray(response)
+
+                    if (jsonArray.length() > 0) {
+                        return@withContext jsonArray.getJSONObject(0).getString("name") // Obtém o nome da cidade corretamente
+                    }
                 }
+                return@withContext "Localização Desconhecida" // Retorno caso não encontre nada
             } catch (e: Exception) {
-                Log.e("API_ERROR", "Erro: ${e.message}")
-                return@withContext null
+                Log.e("API_ERROR", "Erro ao obter nome da cidade: ${e.message}")
+                return@withContext "Localização Desconhecida"
             }
         }
     }
 
-    private fun parseJson(jsonString: String): AirToday? {
-        Log.d("PARSE_JSON", "JSON recebido: $jsonString") // 🔹 Log para verificar o JSON
-
-        val jsonObject = JSONObject(jsonString)
-        val list = jsonObject.getJSONArray("list")
-        if (list.length() == 0) {
-            Log.e("PARSE_ERROR", "Erro: Nenhum dado encontrado na lista")
-            return null
-        }
-
-        val data = list.getJSONObject(0)
-        val main = data.getJSONObject("main")
-        val components = data.getJSONObject("components")
-
-        return AirToday(
-            city = "Localização Desconhecida", // OpenWeather não retorna o nome da cidade diretamente
-            aqi = main.getInt("aqi"),
-            temperature = null, // OpenWeather não fornece temperatura nessa API
-            humidity = null, // OpenWeather não fornece umidade nessa API
-            pm25 = components.optDouble("pm2_5"),
-            pm10 = components.optDouble("pm10"),
-            o3 = components.optDouble("o3"),
-            no2 = components.optDouble("no2"),
-            so2 = components.optDouble("so2"),
-            co = components.optDouble("co"),
-            timestamp = System.currentTimeMillis()
-        )
-    }
 }

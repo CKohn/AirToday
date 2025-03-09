@@ -8,13 +8,19 @@
     <string name="allow_location">Permitir Localização</string>
     <string name="go_to_dashboard">Ir para o Dashboard</string>
 
-    <!-- DashboardScreen -->
+    <!-- Dashboard -->
     <string name="dashboard_title">Qualidade do Ar</string>
-    <string name="loading_data">Carregando dados...</string>
-    <string name="error_loading_data">Erro ao carregar os dados.</string>
-    <string name="error_fetching_data">Erro ao buscar os dados.</string>
-    <string name="aqi_label">Índice de Qualidade do Ar: %d</string>
-    <string name="components_label">Componentes da Qualidade do Ar:</string>
-    <string name="last_update">Última atualização: %s</string>
+    <string name="city_label">Cidade:</string>
+    <string name="latitude_longitude_label">Latitude: %1$.4f | Longitude: %2$.4f</string>
+    <string name="aqi_label">IQA:</string>
+    <string name="temperature_label">Temperatura: %1$.1f°C</string>
+    <string name="humidity_label">Umidade: %1$d%%</string>
+    <string name="last_update">Última atualização: %1$s</string>
+
+    <!-- Botões -->
     <string name="refresh_data">Atualizar Dados</string>
+
+    <!-- Erros -->
+    <string name="error_loading_data">Erro ao carregar os dados. Tente novamente.</string>
+    <string name="unknown_location">Localização Desconhecida</string>
 </resources>
