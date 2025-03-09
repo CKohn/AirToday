@@ -10,6 +10,11 @@
 
     <!-- DashboardScreen -->
     <string name="dashboard_title">Qualidade do Ar</string>
-    <string name="dashboard_description">Dados da qualidade do ar em tempo real</string>
+    <string name="loading_data">Carregando dados...</string>
+    <string name="error_loading_data">Erro ao carregar os dados.</string>
+    <string name="error_fetching_data">Erro ao buscar os dados.</string>
+    <string name="aqi_label">Índice de Qualidade do Ar: %d</string>
+    <string name="components_label">Componentes da Qualidade do Ar:</string>
+    <string name="last_update">Última atualização: %s</string>
     <string name="refresh_data">Atualizar Dados</string>
 </resources>

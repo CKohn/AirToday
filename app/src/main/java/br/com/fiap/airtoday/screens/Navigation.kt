@@ -6,6 +6,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 @Composable
 fun Navigation() {
@@ -17,9 +19,17 @@ fun Navigation() {
         modifier = Modifier
     ) {
         composable("welcome") { BemVindoScreen(navController) }
-//        composable("home") {  }
-        composable("dashboard") {
-            DashboardScreen(navController)
+
+        composable(
+            route = "dashboard/{latitude}/{longitude}",
+            arguments = listOf(
+                navArgument("latitude") { type = NavType.StringType; defaultValue = "0.0" },
+                navArgument("longitude") { type = NavType.StringType; defaultValue = "0.0" }
+            )
+        ) { backStackEntry ->
+            val latitude = backStackEntry.arguments?.getString("latitude")?.toDoubleOrNull() ?: 0.0
+            val longitude = backStackEntry.arguments?.getString("longitude")?.toDoubleOrNull() ?: 0.0
+            DashboardScreen(navController, latitude, longitude)
         }
     }
 }

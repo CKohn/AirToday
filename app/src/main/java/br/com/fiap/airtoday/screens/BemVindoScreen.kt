@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -22,18 +23,36 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import br.com.fiap.airtoday.R
+import com.google.android.gms.location.*
 
 @Composable
 fun BemVindoScreen(navController: NavController) {
     val context = LocalContext.current
     var permissionGranted by remember { mutableStateOf(checkLocationPermission(context)) }
+    var userLocation by remember { mutableStateOf<Location?>(null) }
+
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     LaunchedEffect(Unit) {
         permissionGranted = checkLocationPermission(context)
     }
 
+    fun fetchLocation() {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    userLocation = location
+                }
+            }.addOnFailureListener {
+                userLocation = null
+            }
+        }
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -68,6 +87,7 @@ fun BemVindoScreen(navController: NavController) {
                 onClick = {
                     requestLocationPermission(context as Activity) {
                         permissionGranted = true
+                        fetchLocation()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -81,7 +101,10 @@ fun BemVindoScreen(navController: NavController) {
         } else {
             Button(
                 onClick = {
-                    navController.navigate("dashboard")
+                    fetchLocation()
+                    userLocation?.let {
+                        navController.navigate("dashboard/${it.latitude}/${it.longitude}")
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
@@ -95,6 +118,9 @@ fun BemVindoScreen(navController: NavController) {
     }
 }
 
+/**
+ * Verifica se a permissão de localização foi concedida.
+ */
 fun checkLocationPermission(context: Context): Boolean {
     return ContextCompat.checkSelfPermission(
         context,
@@ -102,6 +128,9 @@ fun checkLocationPermission(context: Context): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 }
 
+/**
+ * Solicita a permissão de localização ao usuário.
+ */
 fun requestLocationPermission(activity: Activity, onPermissionGranted: () -> Unit) {
     ActivityCompat.requestPermissions(
         activity,
@@ -110,8 +139,7 @@ fun requestLocationPermission(activity: Activity, onPermissionGranted: () -> Uni
     )
 
     if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION)
-        == PackageManager.PERMISSION_GRANTED
-    ) {
+        == PackageManager.PERMISSION_GRANTED) {
         onPermissionGranted()
     }
 }

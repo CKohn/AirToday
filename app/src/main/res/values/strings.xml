@@ -9,6 +9,11 @@
 
     <!-- Textos da tela Dashboard -->
     <string name="dashboard_title">Air Quality</string>
-    <string name="dashboard_description">Real-time air quality data</string>
+    <string name="loading_data">Loading data...</string>
+    <string name="error_loading_data">Error loading data.</string>
+    <string name="error_fetching_data">Error fetching data.</string>
+    <string name="aqi_label">Air Quality Index: %d</string>
+    <string name="components_label">Air Pollution Components:</string>
+    <string name="last_update">Last update: %s</string>
     <string name="refresh_data">Refresh Data</string>
 </resources>
