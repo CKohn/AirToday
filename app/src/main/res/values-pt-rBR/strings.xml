@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AirToday</string>
+
+    <!-- BemVindoScreen -->
+    <string name="welcome_title">Bem-vindo ao AirToday</string>
+    <string name="welcome_description">Monitore a qualidade do ar em tempo real e cuide da sua saúde!</string>
+    <string name="allow_location">Permitir Localização</string>
+    <string name="go_to_dashboard">Ir para o Dashboard</string>
+
+    <!-- DashboardScreen -->
+    <string name="dashboard_title">Qualidade do Ar</string>
+    <string name="dashboard_description">Dados da qualidade do ar em tempo real</string>
+    <string name="refresh_data">Atualizar Dados</string>
+</resources>

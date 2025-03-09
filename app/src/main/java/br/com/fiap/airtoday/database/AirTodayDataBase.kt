@@ -21,7 +21,8 @@ abstract class AirTodayDatabase : RoomDatabase() {
                     context.applicationContext,
                     AirTodayDatabase::class.java,
                     "air_today_database"
-                ).build()
+                ).fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

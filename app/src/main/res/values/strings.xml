@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">AirToday</string>
+
+    <!-- Textos da tela BemVindoScreen -->
+    <string name="welcome_title">Welcome to AirToday</string>
+    <string name="welcome_description">Monitor air quality in real time and take care of your health!</string>
+    <string name="allow_location">Allow Location</string>
+    <string name="go_to_dashboard">Go to Dashboard</string>
+
+    <!-- Textos da tela Dashboard -->
+    <string name="dashboard_title">Air Quality</string>
+    <string name="dashboard_description">Real-time air quality data</string>
+    <string name="refresh_data">Refresh Data</string>
 </resources>

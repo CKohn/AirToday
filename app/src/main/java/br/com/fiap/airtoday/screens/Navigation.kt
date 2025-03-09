@@ -17,6 +17,9 @@ fun Navigation() {
         modifier = Modifier
     ) {
         composable("welcome") { BemVindoScreen(navController) }
-        composable("home") {  }
+//        composable("home") {  }
+        composable("dashboard") {
+            DashboardScreen(navController)
+        }
     }
 }

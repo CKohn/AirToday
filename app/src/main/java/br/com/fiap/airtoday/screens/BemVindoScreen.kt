@@ -4,8 +4,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
-import android.os.Looper
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -16,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,15 +22,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import br.com.fiap.airtoday.R
-import com.google.android.gms.location.*
 
 @Composable
 fun BemVindoScreen(navController: NavController) {
     val context = LocalContext.current
     var permissionGranted by remember { mutableStateOf(checkLocationPermission(context)) }
-    var location by remember { mutableStateOf<Location?>(null) }
-
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     LaunchedEffect(Unit) {
         permissionGranted = checkLocationPermission(context)
@@ -46,14 +41,14 @@ fun BemVindoScreen(navController: NavController) {
 
         Image(
             painter = image,
-            contentDescription = "Ícone do app",
+            contentDescription = stringResource(id = R.string.app_name),
             modifier = Modifier.size(120.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Bem-vindo ao AirToday",
+            text = stringResource(id = R.string.welcome_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
@@ -61,38 +56,41 @@ fun BemVindoScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Monitore a qualidade do ar em tempo real e cuide da sua saúde!",
+            text = stringResource(id = R.string.welcome_description),
             fontSize = 16.sp,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
-            onClick = {
-                if (!permissionGranted) {
+        if (!permissionGranted) {
+            Button(
+                onClick = {
                     requestLocationPermission(context as Activity) {
                         permissionGranted = true
                     }
-                } else {
-                    getLastKnownLocation(context, fusedLocationClient) { loc ->
-                        location = loc
-                    }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF025930),
-                contentColor = Color.White
-            )
-        ) {
-            Text(text = if (permissionGranted) "Obter Localização" else "Permitir Localização")
-        }
-
-        location?.let {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Sua localização: ${it.latitude}, ${it.longitude}")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF025930),
+                    contentColor = Color.White
+                )
+            ) {
+                Text(stringResource(id = R.string.allow_location))
+            }
+        } else {
+            Button(
+                onClick = {
+                    navController.navigate("dashboard")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF025930),
+                    contentColor = Color.White
+                )
+            ) {
+                Text(stringResource(id = R.string.go_to_dashboard))
+            }
         }
     }
 }
@@ -112,50 +110,8 @@ fun requestLocationPermission(activity: Activity, onPermissionGranted: () -> Uni
     )
 
     if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION)
-        == PackageManager.PERMISSION_GRANTED) {
+        == PackageManager.PERMISSION_GRANTED
+    ) {
         onPermissionGranted()
     }
 }
-
-fun getLastKnownLocation(
-    context: Context,
-    fusedLocationClient: FusedLocationProviderClient,
-    onLocationReceived: (Location?) -> Unit
-) {
-    if (ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    ) {
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                if (location != null) {
-                    onLocationReceived(location)
-                } else {
-                    val locationRequest = LocationRequest.Builder(
-                        Priority.PRIORITY_HIGH_ACCURACY, 1000
-                    ).setMinUpdateIntervalMillis(500).build()
-
-                    val locationCallback = object : LocationCallback() {
-                        override fun onLocationResult(locationResult: LocationResult) {
-                            fusedLocationClient.removeLocationUpdates(this)
-                            onLocationReceived(locationResult.lastLocation)
-                        }
-                    }
-
-                    fusedLocationClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        Looper.getMainLooper()
-                    )
-                }
-            }
-            .addOnFailureListener { exception ->
-                println("Erro ao obter localização: ${exception.message}")
-                onLocationReceived(null)
-            }
-    } else {
-        println("Permissão de localização não concedida.")
-    }
-}
-
