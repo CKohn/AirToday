@@ -2,6 +2,7 @@ package br.com.fiap.airtoday.model
 
 import com.google.gson.annotations.SerializedName
 
+// Resposta para a API de Clima
 data class WeatherResponse(
     @SerializedName("main") val main: MainData
 )
@@ -11,10 +12,12 @@ data class MainData(
     @SerializedName("humidity") val humidity: Int
 )
 
+// Resposta para a API de Nome da Cidade (Geocoding)
 data class CityResponse(
     @SerializedName("name") val name: String
 )
 
+// Resposta para a API de Qualidade do Ar
 data class AirQualityResponse(
     @SerializedName("list") val list: List<AirQualityData>
 )
@@ -24,5 +27,5 @@ data class AirQualityData(
 )
 
 data class AirQualityMain(
-    @SerializedName("aqi") val aqi: Int
+    @SerializedName("aqi") val aqi: Int // Índice de Qualidade do Ar (AQI)
 )
