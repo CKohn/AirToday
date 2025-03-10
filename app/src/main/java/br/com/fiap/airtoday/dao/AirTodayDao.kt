@@ -17,4 +17,6 @@ interface AirTodayDao {
 
     @Query("DELETE FROM air_today")
     fun limparQualidadeArData()
+
+
 }

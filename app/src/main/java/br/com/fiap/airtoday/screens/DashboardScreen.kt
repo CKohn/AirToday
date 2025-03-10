@@ -2,6 +2,7 @@ package br.com.fiap.airtoday.screens
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -59,7 +60,22 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             isLoading = true
             hasError = false
             try {
-                // 🔹 Obtém a localização mais recente antes de buscar os dados da API
+                // 🔹 Verifica se a permissão foi concedida
+                if (ActivityCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED &&
+                    ActivityCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // 🔹 Se a permissão não foi concedida, interrompe a busca
+                    withContext(Dispatchers.Main) {
+                        hasError = true
+                    }
+                    return@launch
+                }
+
+                // 🔹 Obtém a localização mais recente
                 val lastLocation = fusedLocationClient.getCurrentLocation(
                     com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
                     null
@@ -70,7 +86,7 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
                     longitude = it.longitude
                 }
 
-                // 🔹 Agora busca os dados atualizados da API
+                // 🔹 Busca os dados da API com base na localização
                 val airToday = AirTodayRepository.listaQualidadesAr(latitude, longitude)
 
                 withContext(Dispatchers.Main) {
@@ -92,10 +108,23 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
         }
     }
 
+
     // Obtém os dados assim que a tela carregar
     LaunchedEffect(Unit) {
-        fetchAirQualityData()
+        if (ActivityCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                context as Activity,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                100
+            )
+        } else {
+            fetchAirQualityData()
+        }
     }
+
 
     /**
      * Interface gráfica do Dashboard.
@@ -196,6 +225,15 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             ) {
                 Text(stringResource(id = R.string.refresh_data))
             }
+
+            Button(
+                onClick = { navController.navigate("historico") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+            ) {
+                Text("Ver Histórico")
+            }
+
         }
     }
 }

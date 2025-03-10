@@ -47,5 +47,10 @@ fun Navigation() {
             val longitude = backStackEntry.arguments?.getString("longitude")?.toDoubleOrNull() ?: 0.0
             DashboardScreen(navController, latitude, longitude)
         }
+
+        composable("historico") {
+            HistoricoScreen(navController)
+        }
+
     }
 }

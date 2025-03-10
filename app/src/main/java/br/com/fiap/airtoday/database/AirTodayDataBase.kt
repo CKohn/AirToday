@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import br.com.fiap.airtoday.dao.AirTodayDao
 import br.com.fiap.airtoday.model.AirToday
 
-@Database(entities = [AirToday::class], version = 1, exportSchema = false)
+@Database(entities = [AirToday::class], version = 2) // 🔹 AUMENTE o número da versão
 abstract class AirTodayDatabase : RoomDatabase() {
     abstract fun airTodayDao(): AirTodayDao
 
@@ -20,8 +20,9 @@ abstract class AirTodayDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AirTodayDatabase::class.java,
-                    "air_today_database"
-                ).fallbackToDestructiveMigration()
+                    "airtoday_database"
+                )
+                    .fallbackToDestructiveMigration() // 🔹 Apaga o banco caso seja incompatível
                     .build()
                 INSTANCE = instance
                 instance
@@ -29,3 +30,4 @@ abstract class AirTodayDatabase : RoomDatabase() {
         }
     }
 }
+

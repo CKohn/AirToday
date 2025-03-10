@@ -1,17 +1,19 @@
 package br.com.fiap.airtoday.repository
 
 import android.util.Log
+import br.com.fiap.airtoday.AppContext
 import br.com.fiap.airtoday.model.AirToday
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import br.com.fiap.airtoday.database.AirTodayDatabase
 
 object AirTodayRepository {
 
     private const val API_KEY = "f6014cc8ee00cccbf35170333944b345"
 
-    /**
-     * Obtém os dados combinados de qualidade do ar (AQI), temperatura, umidade e nome da cidade.
-     */
+    // 🔹 Inicializa o banco de dados apenas uma vez
+    private val db by lazy { AirTodayDatabase.getDatabase(AppContext.instance) }
+
     suspend fun listaQualidadesAr(lat: Double, lon: Double): AirToday? {
         return withContext(Dispatchers.IO) {
             try {
@@ -20,13 +22,18 @@ object AirTodayRepository {
                 val weatherData = obterDadosClimaticos(lat, lon)
 
                 if (weatherData != null && aqi != null) {
-                    return@withContext AirToday(
+                    val airToday = AirToday(
                         city = cityName,
                         aqi = aqi,
                         temperature = weatherData.first,
                         humidity = weatherData.second,
                         timestamp = System.currentTimeMillis()
                     )
+
+                    // 🔹 Salva os dados no banco de dados
+                    db.airTodayDao().salvar(airToday)
+
+                    return@withContext airToday
                 }
                 return@withContext null
             } catch (e: Exception) {
@@ -36,9 +43,6 @@ object AirTodayRepository {
         }
     }
 
-    /**
-     * Obtém os dados de temperatura e umidade usando Retrofit.
-     */
     private suspend fun obterDadosClimaticos(lat: Double, lon: Double): Pair<Double?, Int?>? {
         return withContext(Dispatchers.IO) {
             try {
@@ -57,9 +61,6 @@ object AirTodayRepository {
         }
     }
 
-    /**
-     * Obtém o Índice de Qualidade do Ar (AQI) usando Retrofit.
-     */
     private suspend fun obterIndiceDeQualidadeDoAr(lat: Double, lon: Double): Int? {
         return withContext(Dispatchers.IO) {
             try {
@@ -68,7 +69,7 @@ object AirTodayRepository {
                     val airQualityResponse = response.body()
                     val list = airQualityResponse?.list
                     if (!list.isNullOrEmpty()) {
-                        return@withContext list[0].main.aqi
+                        return@withContext list[0].main?.aqi ?: 0 // 🔹 Evita erro de NullPointerException
                     }
                 }
                 return@withContext null
@@ -79,9 +80,6 @@ object AirTodayRepository {
         }
     }
 
-    /**
-     * Obtém o nome da cidade usando Retrofit.
-     */
     suspend fun obterNomeCidade(lat: Double, lon: Double): String {
         return withContext(Dispatchers.IO) {
             try {
@@ -97,6 +95,19 @@ object AirTodayRepository {
                 Log.e("API_ERROR", "Erro ao obter nome da cidade: ${e.message}")
                 return@withContext "Localização Desconhecida"
             }
+        }
+    }
+
+    // 🔹 Corrigindo acesso ao banco de dados Room
+    suspend fun listarHistorico(): List<AirToday> {
+        return withContext(Dispatchers.IO) {
+            db.airTodayDao().listarTodasQualidadesAr()
+        }
+    }
+
+    suspend fun limparHistorico() {
+        return withContext(Dispatchers.IO) {
+            db.airTodayDao().limparQualidadeArData()
         }
     }
 }
