@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="Green_Escuro">#172601</color>
+    <color name="Green_Clarinho">#2C4001</color>
+    <color name="Green_Claro">#5A7302</color>
+    <color name="buto">#A9BF04</color>
+    <color name="buto2">#93A603</color>
 </resources>
