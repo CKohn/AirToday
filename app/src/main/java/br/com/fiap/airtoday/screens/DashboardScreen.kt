@@ -3,7 +3,6 @@ package br.com.fiap.airtoday.screens
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import androidx.compose.animation.*
@@ -37,7 +36,11 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavController, initialLatitude: Double, initialLongitude: Double) {
+fun DashboardScreen(
+    navController: NavController,
+    initialLatitude: Double,
+    initialLongitude: Double
+) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -52,41 +55,28 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
 
-    /**
-     * Obtém os dados da API.
-     */
-    fun fetchAirQualityData() {
+    fun fetchUpdatedLocationAndData() {
         coroutineScope.launch(Dispatchers.IO) {
             isLoading = true
             hasError = false
             try {
-                // 🔹 Verifica se a permissão foi concedida
                 if (ActivityCompat.checkSelfPermission(
                         context, Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED &&
-                    ActivityCompat.checkSelfPermission(
-                        context, Manifest.permission.ACCESS_COARSE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    // 🔹 Se a permissão não foi concedida, interrompe a busca
                     withContext(Dispatchers.Main) {
                         hasError = true
                     }
                     return@launch
                 }
 
-                // 🔹 Obtém a localização mais recente
-                val lastLocation = fusedLocationClient.getCurrentLocation(
-                    com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-                    null
-                ).await()
+                val lastLocation = fusedLocationClient.lastLocation.await()
 
                 lastLocation?.let {
                     latitude = it.latitude
                     longitude = it.longitude
                 }
 
-                // 🔹 Busca os dados da API com base na localização
                 val airToday = AirTodayRepository.listaQualidadesAr(latitude, longitude)
 
                 withContext(Dispatchers.Main) {
@@ -108,8 +98,6 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
         }
     }
 
-
-    // Obtém os dados assim que a tela carregar
     LaunchedEffect(Unit) {
         if (ActivityCompat.checkSelfPermission(
                 context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -117,18 +105,14 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
         ) {
             ActivityCompat.requestPermissions(
                 context as Activity,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 100
             )
         } else {
-            fetchAirQualityData()
+            fetchUpdatedLocationAndData()
         }
     }
 
-
-    /**
-     * Interface gráfica do Dashboard.
-     */
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(stringResource(id = R.string.dashboard_title)) })
@@ -165,7 +149,11 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = stringResource(id = R.string.latitude_longitude_label, latitude, longitude),
+                            text = stringResource(
+                                id = R.string.latitude_longitude_label,
+                                latitude,
+                                longitude
+                            ),
                             fontSize = 14.sp
                         )
 
@@ -179,19 +167,22 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
                             )
                         } else {
                             airQualityIndex?.let { aqi ->
+                                val aqiDescription = when (aqi) {
+                                    1 -> stringResource(id = R.string.aqi_good)
+                                    2 -> stringResource(id = R.string.aqi_moderate)
+                                    3 -> stringResource(id = R.string.aqi_unhealthy_sensitive)
+                                    4 -> stringResource(id = R.string.aqi_unhealthy)
+                                    5 -> stringResource(id = R.string.aqi_very_unhealthy)
+                                    6 -> stringResource(id = R.string.aqi_hazardous)
+                                    else -> stringResource(id = R.string.unknown_location)
+                                }
+
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(
                                             Brush.horizontalGradient(
-                                                colors = when (aqi) {
-                                                    1 -> listOf(Color(0xFF00E400), Color(0xFF008000)) // Verde
-                                                    2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00)) // Amarelo
-                                                    3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E)) // Laranja
-                                                    4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000)) // Vermelho
-                                                    5 -> listOf(Color(0xFF800080), Color(0xFF4B0082)) // Roxo
-                                                    else -> listOf(Color.Gray, Color.DarkGray)
-                                                }
+                                                colors = listOf(Color(0xFF00E400), Color(0xFF008000))
                                             ),
                                             shape = RoundedCornerShape(10.dp)
                                         )
@@ -199,7 +190,7 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "${stringResource(id = R.string.aqi_label)} $aqi",
+                                        text = "${stringResource(id = R.string.aqi_label)} $aqi - $aqiDescription",
                                         fontSize = 22.sp,
                                         color = Color.White
                                     )
@@ -207,9 +198,20 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
 
                                 Spacer(modifier = Modifier.height(10.dp))
 
-                                Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
-                                Text(stringResource(id = R.string.temperature_label, temperature ?: 0.0), fontSize = 16.sp)
-                                Text(stringResource(id = R.string.humidity_label, humidity ?: 0), fontSize = 16.sp)
+                                Text(
+                                    stringResource(id = R.string.last_update, lastUpdate),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    stringResource(
+                                        id = R.string.temperature_label,
+                                        temperature ?: 0.0
+                                    ), fontSize = 16.sp
+                                )
+                                Text(
+                                    stringResource(id = R.string.humidity_label, humidity ?: 0),
+                                    fontSize = 16.sp
+                                )
                             }
                         }
                     }
@@ -219,7 +221,7 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
-                onClick = { fetchAirQualityData() },
+                onClick = { fetchUpdatedLocationAndData() },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
             ) {
@@ -233,7 +235,6 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             ) {
                 Text("Ver Histórico")
             }
-
         }
     }
 }

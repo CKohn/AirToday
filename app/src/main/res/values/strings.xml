@@ -17,7 +17,7 @@
     <string name="dashboard_title">Air Quality</string>
     <string name="city_label">City:</string>
     <string name="latitude_longitude_label">Latitude: %1$.4f | Longitude: %2$.4f</string>
-    <string name="aqi_label">Air Quality Index:</string>
+    <string name="aqi_label">AQI:</string>
     <string name="temperature_label">Temperature: %1$.1f°C</string>
     <string name="humidity_label">Humidity: %1$d%%</string>
     <string name="last_update">Last update: %1$s</string>
