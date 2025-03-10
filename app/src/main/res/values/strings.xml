@@ -1,25 +1,46 @@
 <resources>
     <string name="app_name">AirToday</string>
 
-    <!-- Textos da tela BemVindoScreen -->
+    <!-- Welcome Screen -->
     <string name="welcome_title">Welcome to AirToday</string>
     <string name="welcome_description">Monitor air quality in real time and take care of your health!</string>
     <string name="allow_location">Allow Location</string>
-    <string name="go_to_dashboard">Go to Dashboard</string>
+    <string name="location_denied">Location permission denied</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">Login</string>
+    <string name="login_email_label">Enter your email</string>
+    <string name="login_password_label">Enter your password</string>
+    <string name="login_button">Login</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Air Quality</string>
     <string name="city_label">City:</string>
     <string name="latitude_longitude_label">Latitude: %1$.4f | Longitude: %2$.4f</string>
-    <string name="aqi_label">AQI:</string>
+    <string name="aqi_label">Air Quality Index:</string>
     <string name="temperature_label">Temperature: %1$.1f°C</string>
     <string name="humidity_label">Humidity: %1$d%%</string>
     <string name="last_update">Last update: %1$s</string>
 
     <!-- Buttons -->
     <string name="refresh_data">Refresh Data</string>
+    <string name="view_history">View History</string>
 
     <!-- Errors -->
-    <string name="error_loading_data">Error loading data. Please try again.</string>
+    <string name="error_loading_data">Error loading data. Check your internet connection.</string>
     <string name="unknown_location">Unknown Location</string>
+
+    <!-- History Screen -->
+    <string name="history_title">Air Quality History</string>
+    <string name="history_empty">No data saved yet.</string>
+    <string name="clear_history">Clear History</string>
+    <string name="back">Back</string>
+
+    <!-- AQI Labels -->
+    <string name="aqi_good">Good</string>
+    <string name="aqi_moderate">Moderate</string>
+    <string name="aqi_unhealthy_sensitive">Unhealthy for Sensitive Groups</string>
+    <string name="aqi_unhealthy">Unhealthy</string>
+    <string name="aqi_very_unhealthy">Very Unhealthy</string>
+    <string name="aqi_hazardous">Hazardous</string>
 </resources>

@@ -9,8 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import br.com.fiap.airtoday.R
 import br.com.fiap.airtoday.model.AirToday
 import br.com.fiap.airtoday.repository.AirTodayRepository
 import kotlinx.coroutines.launch
@@ -21,7 +23,6 @@ fun HistoricoScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var historico by remember { mutableStateOf<List<AirToday>>(emptyList()) }
 
-    // Carrega os dados ao abrir a tela
     LaunchedEffect(Unit) {
         historico = AirTodayRepository.listarHistorico()
     }
@@ -29,33 +30,28 @@ fun HistoricoScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Histórico de Qualidade do Ar") },
+                title = { Text(stringResource(id = R.string.history_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) { // 🔹 Aqui está a correção!
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(id = R.string.back))
                     }
                 }
             )
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (historico.isEmpty()) {
-                Text("Nenhum dado salvo ainda.", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(id = R.string.history_empty))
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(historico) { item ->
-                        HistoricoItem(item)
+                        Text("${stringResource(id = R.string.city_label)} ${item.city}")
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -65,25 +61,8 @@ fun HistoricoScreen(navController: NavController) {
                     }
                 }
             ) {
-                Text("Limpar Histórico")
+                Text(stringResource(id = R.string.clear_history))
             }
-        }
-    }
-}
-
-@Composable
-fun HistoricoItem(item: AirToday) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Cidade: ${item.city}", style = MaterialTheme.typography.bodyLarge)
-            Text("AQI: ${item.aqi}", style = MaterialTheme.typography.bodyMedium)
-            Text("Temperatura: ${item.temperature ?: "N/A"}°C", style = MaterialTheme.typography.bodyMedium)
-            Text("Umidade: ${item.humidity ?: "N/A"}%", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
