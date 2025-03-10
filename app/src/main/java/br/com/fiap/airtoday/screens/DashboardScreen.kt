@@ -26,7 +26,7 @@ import androidx.core.app.ActivityCompat
 import androidx.navigation.NavController
 import br.com.fiap.airtoday.R
 import br.com.fiap.airtoday.repository.AirTodayRepository
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -36,11 +36,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(
-    navController: NavController,
-    initialLatitude: Double,
-    initialLongitude: Double
-) {
+fun DashboardScreen(navController: NavController, initialLatitude: Double, initialLongitude: Double) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -55,32 +51,15 @@ fun DashboardScreen(
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
 
-    fun fetchUpdatedLocationAndData() {
+    fun fetchAirQualityData() {
         coroutineScope.launch(Dispatchers.IO) {
             isLoading = true
             hasError = false
             try {
-                if (ActivityCompat.checkSelfPermission(
-                        context, Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    withContext(Dispatchers.Main) {
-                        hasError = true
-                    }
-                    return@launch
-                }
-
-                val lastLocation = fusedLocationClient.lastLocation.await()
-
-                lastLocation?.let {
-                    latitude = it.latitude
-                    longitude = it.longitude
-                }
-
                 val airToday = AirTodayRepository.listaQualidadesAr(latitude, longitude)
 
                 withContext(Dispatchers.Main) {
-                    cityName = airToday?.city
+                    cityName = airToday?.city ?: ""
                     airQualityIndex = airToday?.aqi
                     temperature = airToday?.temperature
                     humidity = airToday?.humidity
@@ -98,19 +77,47 @@ fun DashboardScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (ActivityCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                context as Activity,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                100
-            )
-        } else {
-            fetchUpdatedLocationAndData()
+    fun updateLocationAndFetchData() {
+        coroutineScope.launch(Dispatchers.IO) {
+            isLoading = true
+            hasError = false
+            try {
+                if (ActivityCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED &&
+                    ActivityCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    withContext(Dispatchers.Main) {
+                        hasError = true
+                    }
+                    return@launch
+                }
+
+                val lastLocation = fusedLocationClient.getCurrentLocation(
+                    com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                    null
+                ).await()
+
+                lastLocation?.let {
+                    latitude = it.latitude
+                    longitude = it.longitude
+                }
+
+                withContext(Dispatchers.Main) {
+                    fetchAirQualityData()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    hasError = true
+                }
+            }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        updateLocationAndFetchData()
     }
 
     Scaffold(
@@ -126,7 +133,7 @@ fun DashboardScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AnimatedVisibility(
-                visible = !isLoading,
+                visible = !isLoading || hasError,
                 enter = fadeIn(animationSpec = tween(500)) + scaleIn(animationSpec = tween(500)),
                 exit = fadeOut(animationSpec = tween(300))
             ) {
@@ -144,16 +151,12 @@ fun DashboardScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "${stringResource(id = R.string.city_label)} ${cityName ?: stringResource(id = R.string.unknown_location)}",
+                            text = stringResource(id = R.string.city_label) + " " + (cityName?.ifEmpty { stringResource(id = R.string.unknown_location) }),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = stringResource(
-                                id = R.string.latitude_longitude_label,
-                                latitude,
-                                longitude
-                            ),
+                            text = stringResource(id = R.string.latitude_longitude_label, latitude, longitude),
                             fontSize = 14.sp
                         )
 
@@ -167,22 +170,19 @@ fun DashboardScreen(
                             )
                         } else {
                             airQualityIndex?.let { aqi ->
-                                val aqiDescription = when (aqi) {
-                                    1 -> stringResource(id = R.string.aqi_good)
-                                    2 -> stringResource(id = R.string.aqi_moderate)
-                                    3 -> stringResource(id = R.string.aqi_unhealthy_sensitive)
-                                    4 -> stringResource(id = R.string.aqi_unhealthy)
-                                    5 -> stringResource(id = R.string.aqi_very_unhealthy)
-                                    6 -> stringResource(id = R.string.aqi_hazardous)
-                                    else -> stringResource(id = R.string.unknown_location)
-                                }
-
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(
                                             Brush.horizontalGradient(
-                                                colors = listOf(Color(0xFF00E400), Color(0xFF008000))
+                                                colors = when (aqi) {
+                                                    1 -> listOf(Color(0xFF00E400), Color(0xFF008000))
+                                                    2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00))
+                                                    3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E))
+                                                    4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000))
+                                                    5 -> listOf(Color(0xFF800080), Color(0xFF4B0082))
+                                                    else -> listOf(Color.Gray, Color.DarkGray)
+                                                }
                                             ),
                                             shape = RoundedCornerShape(10.dp)
                                         )
@@ -190,7 +190,7 @@ fun DashboardScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "${stringResource(id = R.string.aqi_label)} $aqi - $aqiDescription",
+                                        text = "${stringResource(id = R.string.aqi_label)} $aqi",
                                         fontSize = 22.sp,
                                         color = Color.White
                                     )
@@ -198,20 +198,9 @@ fun DashboardScreen(
 
                                 Spacer(modifier = Modifier.height(10.dp))
 
-                                Text(
-                                    stringResource(id = R.string.last_update, lastUpdate),
-                                    fontSize = 12.sp
-                                )
-                                Text(
-                                    stringResource(
-                                        id = R.string.temperature_label,
-                                        temperature ?: 0.0
-                                    ), fontSize = 16.sp
-                                )
-                                Text(
-                                    stringResource(id = R.string.humidity_label, humidity ?: 0),
-                                    fontSize = 16.sp
-                                )
+                                Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
+                                Text(stringResource(id = R.string.temperature_label, temperature ?: 0.0), fontSize = 16.sp)
+                                Text(stringResource(id = R.string.humidity_label, humidity ?: 0), fontSize = 16.sp)
                             }
                         }
                     }
@@ -221,7 +210,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
-                onClick = { fetchUpdatedLocationAndData() },
+                onClick = { updateLocationAndFetchData() },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
             ) {
