@@ -14,7 +14,7 @@
     <string name="login_button">Login</string>
 
     <!-- Dashboard -->
-    <string name="dashboard_title">Air Quality</string>
+    <string name="dashboard_title">Air Quality Now</string>
     <string name="city_label">City:</string>
     <string name="latitude_longitude_label">Latitude: %1$.4f | Longitude: %2$.4f</string>
     <string name="aqi_label">AQI:</string>
