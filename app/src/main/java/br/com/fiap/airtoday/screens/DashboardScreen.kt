@@ -238,6 +238,14 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             ) {
                 Text("Ver Histórico")
             }
+
+            Button(
+                onClick = { navController.navigate("tips") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+            ) {
+                Text("Air Quality Tips")
+            }
         }
     }
 }

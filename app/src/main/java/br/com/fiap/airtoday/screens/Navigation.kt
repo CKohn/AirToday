@@ -48,6 +48,10 @@ fun Navigation() {
             DashboardScreen(navController, latitude, longitude)
         }
 
+        composable("tips") {
+            TipsScreen(navController = navController)
+        }
+
         // 🔹 Rota que recebe a cidade como argumento: "historico/{city}"
         composable(
             route = "historico/{city}",
