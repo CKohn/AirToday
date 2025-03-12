@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
@@ -33,12 +34,11 @@ fun TipsScreen(navController: NavController) {
     val context = LocalContext.current
 
     // Estado para guardar o número de emergência detectado
-    var phoneNumber by remember { mutableStateOf("112") } // Fallback padrão se não acharmos o país
+    var phoneNumber by remember { mutableStateOf("112") } // Fallback caso não encontre país
     val coroutineScope = rememberCoroutineScope()
 
-    // Buscamos a localização e definimos o número de emergência assim que a tela abre
+    // Busca localização e define o número de emergência ao abrir a tela
     LaunchedEffect(Unit) {
-        // Verifica se a permissão de localização está concedida
         val hasPermission = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
@@ -47,20 +47,17 @@ fun TipsScreen(navController: NavController) {
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     try {
-                        // Obtém a localização mais recente
                         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
                         val location = fusedLocationClient.lastLocation.await()
                             ?: run {
-                                Log.e("TipsScreen", "location == null, usando fallback 112")
+                                Log.e("TipsScreen", "location == null, fallback 112")
                                 return@withContext
                             }
 
-                        // Descobre o país via Geocoder
                         val geocoder = Geocoder(context, Locale.getDefault())
                         val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                        val countryCode = addresses?.firstOrNull()?.countryCode // ex.: "BR", "US" etc.
+                        val countryCode = addresses?.firstOrNull()?.countryCode
 
-                        // Mapeamento de códigos de país -> número de emergência
                         val emergencyMap = mapOf(
                             "BR" to "192", // SAMU no Brasil
                             "US" to "911",
@@ -68,25 +65,23 @@ fun TipsScreen(navController: NavController) {
                             "FR" to "112",
                             "ES" to "112",
                             "PT" to "112",
-                            // Adicione mais conforme necessidade
                         )
 
                         val detectedNumber = emergencyMap[countryCode] ?: "112"
                         phoneNumber = detectedNumber
 
-                        Log.d("TipsScreen", "País detectado: $countryCode -> número emergência: $detectedNumber")
+                        Log.d("TipsScreen", "País: $countryCode -> Emergência: $detectedNumber")
 
                     } catch (e: Exception) {
-                        Log.e("TipsScreen", "Erro ao obter localização/país: ${e.message}")
+                        Log.e("TipsScreen", "Erro ao obter país: ${e.message}")
                     }
                 }
             }
         } else {
-            Log.e("TipsScreen", "Sem permissão de localização. Usando fallback 112.")
+            Log.e("TipsScreen", "Sem permissão de localização. Fallback 112.")
         }
     }
 
-    // Conteúdo da tela
     Scaffold(
         topBar = {
             TopAppBar(
@@ -119,11 +114,12 @@ fun TipsScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("• Check the AQI daily before planning outdoor activities.")
-                Text("• Keep windows and doors closed when pollution is high.")
-                Text("• Use an air purifier indoors if possible.")
-                Text("• Stay hydrated and maintain a healthy diet.")
-                Text("• Consider wearing an N95 mask if AQI is Very Poor.")
+                // Exemplos de dicas com fontSize personalizado (16.sp)
+                Text("• Check the AQI daily before planning outdoor activities.", fontSize = 16.sp)
+                Text("• Keep windows and doors closed when pollution is high.", fontSize = 16.sp)
+                Text("• Use an air purifier indoors if possible.", fontSize = 16.sp)
+                Text("• Stay hydrated and maintain a healthy diet.", fontSize = 16.sp)
+                Text("• Consider wearing an N95 mask if AQI is Very Poor.", fontSize = 16.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -134,11 +130,11 @@ fun TipsScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text("• Use public transport or carpool to reduce emissions.")
-                Text("• Turn off lights and electronics when not in use.")
-                Text("• Recycle and dispose of waste responsibly.")
-                Text("• Plant trees or maintain indoor plants to help purify the air.")
-                Text("• Avoid burning trash or leaves, which contributes to air pollution.")
+                Text("• Use public transport or carpool to reduce emissions.", fontSize = 16.sp)
+                Text("• Turn off lights and electronics when not in use.", fontSize = 16.sp)
+                Text("• Recycle and dispose of waste responsibly.", fontSize = 16.sp)
+                Text("• Plant trees or maintain indoor plants to help purify the air.", fontSize = 16.sp)
+                Text("• Avoid burning trash or leaves, which contributes to air pollution.", fontSize = 16.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -149,9 +145,9 @@ fun TipsScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text("• Children, the elderly, and those with respiratory issues should limit outdoor activities when AQI is high.")
-                Text("• Keep medications (like inhalers) easily accessible if you have asthma.")
-                Text("• Consult your doctor for specific guidance if you have chronic conditions.")
+                Text("• Children, the elderly, and those with respiratory issues...", fontSize = 16.sp)
+                Text("• Keep medications (like inhalers) easily accessible...", fontSize = 16.sp)
+                Text("• Consult your doctor for specific guidance...", fontSize = 16.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -162,9 +158,9 @@ fun TipsScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text("• If you experience shortness of breath, wheezing, or severe coughing.")
-                Text("• If you have chest pain or tightness that doesn’t improve.")
-                Text("• If your symptoms worsen despite taking usual medications.")
+                Text("• If you experience shortness of breath, wheezing, or severe coughing.", fontSize = 16.sp)
+                Text("• If you have chest pain or tightness that doesn’t improve.", fontSize = 16.sp)
+                Text("• If your symptoms worsen despite taking usual medications.", fontSize = 16.sp)
             }
 
             // Rodapé com botões
@@ -187,10 +183,7 @@ fun TipsScreen(navController: NavController) {
                 // Botão "Call Emergency"
                 Button(
                     onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_DIAL,
-                            Uri.parse("tel:$phoneNumber")
-                        )
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
                         context.startActivity(intent)
                     },
                     modifier = Modifier.weight(1f),
