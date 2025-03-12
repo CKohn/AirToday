@@ -32,12 +32,9 @@ import java.util.Locale
 @Composable
 fun TipsScreen(navController: NavController) {
     val context = LocalContext.current
-
-    // Estado para guardar o número de emergência detectado
-    var phoneNumber by remember { mutableStateOf("112") } // Fallback caso não encontre país
+    var phoneNumber by remember { mutableStateOf("112") }
     val coroutineScope = rememberCoroutineScope()
 
-    // Busca localização e define o número de emergência ao abrir a tela
     LaunchedEffect(Unit) {
         val hasPermission = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -53,25 +50,20 @@ fun TipsScreen(navController: NavController) {
                                 Log.e("TipsScreen", "location == null, fallback 112")
                                 return@withContext
                             }
-
                         val geocoder = Geocoder(context, Locale.getDefault())
                         val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                         val countryCode = addresses?.firstOrNull()?.countryCode
-
                         val emergencyMap = mapOf(
-                            "BR" to "192", // SAMU no Brasil
+                            "BR" to "192",
                             "US" to "911",
                             "GB" to "999",
                             "FR" to "112",
                             "ES" to "112",
-                            "PT" to "112",
+                            "PT" to "112"
                         )
-
                         val detectedNumber = emergencyMap[countryCode] ?: "112"
                         phoneNumber = detectedNumber
-
                         Log.d("TipsScreen", "País: $countryCode -> Emergência: $detectedNumber")
-
                     } catch (e: Exception) {
                         Log.e("TipsScreen", "Erro ao obter país: ${e.message}")
                     }
@@ -94,13 +86,11 @@ fun TipsScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Área de dicas rolável
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -113,74 +103,57 @@ fun TipsScreen(navController: NavController) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Exemplos de dicas com fontSize personalizado (16.sp)
                 Text("• Check the AQI daily before planning outdoor activities.", fontSize = 16.sp)
                 Text("• Keep windows and doors closed when pollution is high.", fontSize = 16.sp)
                 Text("• Use an air purifier indoors if possible.", fontSize = 16.sp)
                 Text("• Stay hydrated and maintain a healthy diet.", fontSize = 16.sp)
                 Text("• Consider wearing an N95 mask if AQI is Very Poor.", fontSize = 16.sp)
-
                 Spacer(modifier = Modifier.height(24.dp))
-
                 Text(
                     text = "Eco-Friendly Habits:",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text("• Use public transport or carpool to reduce emissions.", fontSize = 16.sp)
                 Text("• Turn off lights and electronics when not in use.", fontSize = 16.sp)
                 Text("• Recycle and dispose of waste responsibly.", fontSize = 16.sp)
                 Text("• Plant trees or maintain indoor plants to help purify the air.", fontSize = 16.sp)
                 Text("• Avoid burning trash or leaves, which contributes to air pollution.", fontSize = 16.sp)
-
                 Spacer(modifier = Modifier.height(24.dp))
-
                 Text(
                     text = "Tips for Sensitive Groups:",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text("• Children, the elderly, and those with respiratory issues...", fontSize = 16.sp)
                 Text("• Keep medications (like inhalers) easily accessible...", fontSize = 16.sp)
                 Text("• Consult your doctor for specific guidance...", fontSize = 16.sp)
-
                 Spacer(modifier = Modifier.height(24.dp))
-
                 Text(
                     text = "When to Seek Medical Help:",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text("• If you experience shortness of breath, wheezing, or severe coughing.", fontSize = 16.sp)
                 Text("• If you have chest pain or tightness that doesn’t improve.", fontSize = 16.sp)
                 Text("• If your symptoms worsen despite taking usual medications.", fontSize = 16.sp)
             }
-
-            // Rodapé com botões
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Botão "Got it!"
                 Button(
                     onClick = { navController.popBackStack() },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Got it!")
                 }
-
                 Spacer(modifier = Modifier.width(8.dp))
-
-                // Botão "Call Emergency"
                 Button(
                     onClick = {
                         val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber"))

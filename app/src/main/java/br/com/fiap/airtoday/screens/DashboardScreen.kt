@@ -52,7 +52,6 @@ fun DashboardScreen(
     var humidity by remember { mutableStateOf<Int?>(null) }
     var lastUpdate by remember { mutableStateOf("—") }
 
-    // Loading and error states
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
 
@@ -123,12 +122,10 @@ fun DashboardScreen(
         }
     }
 
-    // Carrega dados ao abrir a tela
     LaunchedEffect(Unit) {
         updateLocationAndFetchData()
     }
 
-    // Scaffold com título centralizado
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -136,16 +133,14 @@ fun DashboardScreen(
             )
         }
     ) { paddingValues ->
-        // Usamos Arrangement.SpaceEvenly para dividir o espaço vertical igualmente
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceEvenly, // Distribui espaço igualmente
+            verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1) Verifica estado de loading/erro/dados
             when {
                 isLoading -> {
                     CircularProgressIndicator()
@@ -158,7 +153,6 @@ fun DashboardScreen(
                     )
                 }
                 else -> {
-                    // Card com dados, refresh embutido
                     StatusCard(
                         cityName = cityName ?: "",
                         latitude = latitude,
@@ -172,10 +166,8 @@ fun DashboardScreen(
                 }
             }
 
-            // 2) Legenda do AQI
             AqiLegend()
 
-            // 3) Botões
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -214,9 +206,6 @@ fun DashboardScreen(
     }
 }
 
-/**
- * Card de status, com um IconButton para refresh no canto superior esquerdo.
- */
 @Composable
 fun StatusCard(
     cityName: String,
@@ -236,7 +225,6 @@ fun StatusCard(
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Ícone de refresh no canto superior esquerdo
             IconButton(
                 onClick = onRefresh,
                 modifier = Modifier
@@ -250,7 +238,6 @@ fun StatusCard(
                 )
             }
 
-            // Conteúdo principal
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -318,9 +305,6 @@ fun StatusCard(
     }
 }
 
-/**
- * Legenda dos valores de AQI (1 a 5).
- */
 @Composable
 fun AqiLegend() {
     Card(
@@ -337,7 +321,6 @@ fun AqiLegend() {
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
-
             AqiLegendItem(aqiValue = 1, label = "Good", color = Color(0xFF00E400))
             AqiLegendItem(aqiValue = 2, label = "Fair", color = Color(0xFFFFFF00))
             AqiLegendItem(aqiValue = 3, label = "Moderate", color = Color(0xFFFFA500))
@@ -347,9 +330,6 @@ fun AqiLegend() {
     }
 }
 
-/**
- * Item individual da legenda (ex.: "AQI 1: Good")
- */
 @Composable
 fun AqiLegendItem(aqiValue: Int, label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {

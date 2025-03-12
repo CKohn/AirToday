@@ -20,21 +20,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import br.com.fiap.airtoday.R
 import br.com.fiap.airtoday.repository.AirTodayRepository
-import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
-// Dados básicos de cada capital (nome, lat, lon)
 data class WorldCity(
     val cityName: String,
     val latitude: Double,
     val longitude: Double
 )
 
-// Dados de qualidade do ar retornados (podemos expandir conforme necessário)
 data class CityAirQuality(
     val cityName: String,
     val aqi: Int?,
@@ -43,41 +41,35 @@ data class CityAirQuality(
     val lastUpdate: String
 )
 
-// Lista fixa de capitais para demonstrar
 private val capitals = listOf(
     WorldCity("New York", 40.7128, -74.0060),
     WorldCity("London", 51.5074, -0.1278),
     WorldCity("Tokyo", 35.6895, 139.6917),
     WorldCity("Brasília", -15.7939, -47.8828),
-    WorldCity("Paris", 48.8566, 2.3522)
+    WorldCity("Paris", 48.8566, 2.3522),
+    WorldCity("Sydney", -33.8688, 151.2093),
+    WorldCity("Moscow", 55.7558, 37.6173),
+    WorldCity("Cairo", 30.0444, 31.2357),
+    WorldCity("Beijing", 39.9042, 116.4074),
+    WorldCity("Delhi", 28.7041, 77.1025)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorldAirQualityScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
-
-    // Armazena a lista de dados carregados para cada cidade
     var worldData by remember { mutableStateOf<List<CityAirQuality>>(emptyList()) }
-    // Controla loading e erro
     var isLoading by remember { mutableStateOf(true) }
     var showError by remember { mutableStateOf(false) }
-
-    // Formato de data/hora
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
-
-    // Função para buscar dados de todas as capitais
     fun fetchAllCapitals() {
         coroutineScope.launch(Dispatchers.IO) {
             isLoading = true
             showError = false
             val resultList = mutableListOf<CityAirQuality>()
-
             try {
-                // Para cada capital, chamamos o repositório e montamos o objeto de dados
                 for (city in capitals) {
                     val airToday = AirTodayRepository.listaQualidadesAr(city.latitude, city.longitude)
-                    // Se não houve erro, adiciona à lista
                     if (airToday != null) {
                         val item = CityAirQuality(
                             cityName = city.cityName,
@@ -87,18 +79,13 @@ fun WorldAirQualityScreen(navController: NavController) {
                             lastUpdate = dateFormat.format(Date())
                         )
                         resultList.add(item)
-                    } else {
-                        // Se airToday vier nulo para alguma cidade, podemos tratar como erro local
-                        // mas aqui apenas não adicionamos
                     }
                 }
-                // Atualiza o estado com a lista final
                 withContext(Dispatchers.Main) {
                     worldData = resultList
                     isLoading = false
                 }
             } catch (e: Exception) {
-                // Se der erro geral, marcamos showError
                 withContext(Dispatchers.Main) {
                     showError = true
                     isLoading = false
@@ -106,12 +93,9 @@ fun WorldAirQualityScreen(navController: NavController) {
             }
         }
     }
-
-    // Carrega ao entrar na tela
     LaunchedEffect(Unit) {
         fetchAllCapitals()
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -124,13 +108,11 @@ fun WorldAirQualityScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        // Conteúdo principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Se estiver carregando, mostra loading
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -138,18 +120,14 @@ fun WorldAirQualityScreen(navController: NavController) {
                 ) {
                     CircularProgressIndicator()
                 }
-            }
-            // Se deu erro, mostra mensagem
-            else if (showError) {
+            } else if (showError) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = "Error loading data.")
                 }
-            }
-            // Caso contrário, exibe a lista de capitais
-            else {
+            } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
@@ -164,9 +142,6 @@ fun WorldAirQualityScreen(navController: NavController) {
     }
 }
 
-/**
- * Exibe um Card semelhante ao da Dashboard, mas para cada cidade.
- */
 @Composable
 fun CityAirCard(cityData: CityAirQuality) {
     Card(
@@ -188,8 +163,6 @@ fun CityAirCard(cityData: CityAirQuality) {
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
-
-            // AQI
             cityData.aqi?.let { aqi ->
                 Box(
                     modifier = Modifier
@@ -217,15 +190,10 @@ fun CityAirCard(cityData: CityAirQuality) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Temperatura e Umidade
             Text("Temperature: %.1f °C".format(cityData.temperature ?: 0.0), fontSize = 16.sp)
             Text("Humidity: %d %%".format(cityData.humidity ?: 0), fontSize = 16.sp)
             Spacer(modifier = Modifier.height(4.dp))
-
-            // Última atualização
             Text("Last update: ${cityData.lastUpdate}", fontSize = 12.sp)
         }
     }
