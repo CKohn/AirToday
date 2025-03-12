@@ -1,10 +1,7 @@
 package br.com.fiap.airtoday.screens
 
 import android.Manifest
-import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.pm.PackageManager
-import android.location.Location
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -26,7 +23,7 @@ import androidx.core.app.ActivityCompat
 import androidx.navigation.NavController
 import br.com.fiap.airtoday.R
 import br.com.fiap.airtoday.repository.AirTodayRepository
-import com.google.android.gms.location.*
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -47,7 +44,9 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
     var cityName by remember { mutableStateOf<String?>(null) }
     var temperature by remember { mutableStateOf<Double?>(null) }
     var humidity by remember { mutableStateOf<Int?>(null) }
-    var lastUpdate by remember { mutableStateOf<String>("---") }
+    var lastUpdate by remember { mutableStateOf("—") }
+
+    // Estados de carregamento e erro
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
 
@@ -57,7 +56,6 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             hasError = false
             try {
                 val airToday = AirTodayRepository.listaQualidadesAr(latitude, longitude)
-
                 withContext(Dispatchers.Main) {
                     cityName = airToday?.city ?: ""
                     airQualityIndex = airToday?.aqi
@@ -125,104 +123,143 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             TopAppBar(title = { Text(stringResource(id = R.string.dashboard_title)) })
         }
     ) { paddingValues ->
-        Column(
+        // Box para centralizar o conteúdo
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
         ) {
-            AnimatedVisibility(
-                visible = !isLoading || hasError,
-                enter = fadeIn(animationSpec = tween(500)) + scaleIn(animationSpec = tween(500)),
-                exit = fadeOut(animationSpec = tween(300))
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
+            when {
+                // 1) Se ainda está carregando, mostra o CircularProgressIndicator
+                isLoading -> {
+                    CircularProgressIndicator()
+                }
+                // 2) Se houve erro, mostra mensagem de erro (pode colocar botão de "Tentar de novo" se quiser)
+                hasError -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = stringResource(id = R.string.city_label) + " " + (cityName?.ifEmpty { stringResource(id = R.string.unknown_location) }),
+                            text = stringResource(id = R.string.error_loading_data),
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                            color = Color.Red
                         )
-                        Text(
-                            text = stringResource(id = R.string.latitude_longitude_label, latitude, longitude),
-                            fontSize = 14.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        if (hasError) {
-                            Text(
-                                text = stringResource(id = R.string.error_loading_data),
-                                fontSize = 18.sp,
-                                color = Color.Red
-                            )
-                        } else {
-                            airQualityIndex?.let { aqi ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                colors = when (aqi) {
-                                                    1 -> listOf(Color(0xFF00E400), Color(0xFF008000))
-                                                    2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00))
-                                                    3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E))
-                                                    4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000))
-                                                    5 -> listOf(Color(0xFF800080), Color(0xFF4B0082))
-                                                    else -> listOf(Color.Gray, Color.DarkGray)
-                                                }
-                                            ),
-                                            shape = RoundedCornerShape(10.dp)
-                                        )
-                                        .padding(12.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "${stringResource(id = R.string.aqi_label)} $aqi",
-                                        fontSize = 22.sp,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
-                                Text(stringResource(id = R.string.temperature_label, temperature ?: 0.0), fontSize = 16.sp)
-                                Text(stringResource(id = R.string.humidity_label, humidity ?: 0), fontSize = 16.sp)
-                            }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { updateLocationAndFetchData() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                        ) {
+                            Text(stringResource(id = R.string.refresh_data))
                         }
                     }
                 }
-            }
+                // 3) Caso contrário, mostra o conteúdo normal
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Cartão com dados
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.city_label) + " " +
+                                            (cityName?.ifEmpty { stringResource(id = R.string.unknown_location) } ?: ""),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = stringResource(
+                                        id = R.string.latitude_longitude_label,
+                                        latitude,
+                                        longitude
+                                    ),
+                                    fontSize = 14.sp
+                                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
 
-            Button(
-                onClick = { updateLocationAndFetchData() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
-            ) {
-                Text(stringResource(id = R.string.refresh_data))
-            }
+                                // Verifica se já temos o AQI
+                                if (airQualityIndex != null) {
+                                    val aqi = airQualityIndex!!
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = when (aqi) {
+                                                        1 -> listOf(Color(0xFF00E400), Color(0xFF008000))
+                                                        2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00))
+                                                        3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E))
+                                                        4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000))
+                                                        5 -> listOf(Color(0xFF800080), Color(0xFF4B0082))
+                                                        else -> listOf(Color.Gray, Color.DarkGray)
+                                                    }
+                                                ),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .padding(12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "${stringResource(id = R.string.aqi_label)} $aqi",
+                                            fontSize = 22.sp,
+                                            color = Color.White
+                                        )
+                                    }
 
-            Button(
-                onClick = { navController.navigate("historico") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
-            ) {
-                Text("Ver Histórico")
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
+                                    Text(
+                                        stringResource(id = R.string.temperature_label, temperature ?: 0.0),
+                                        fontSize = 16.sp
+                                    )
+                                    Text(
+                                        stringResource(id = R.string.humidity_label, humidity ?: 0),
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Botão para atualizar a localização e recarregar os dados
+                        Button(
+                            onClick = { updateLocationAndFetchData() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                        ) {
+                            Text(stringResource(id = R.string.refresh_data))
+                        }
+
+                        // Botão para ir ao histórico, passando o nome da cidade
+                        Button(
+                            onClick = {
+                                navController.navigate("historico/${cityName ?: ""}")
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                        ) {
+                            Text("Ver Histórico")
+                        }
+                    }
+                }
             }
         }
     }

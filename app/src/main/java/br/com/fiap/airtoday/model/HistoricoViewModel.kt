@@ -13,20 +13,39 @@ class HistoricoViewModel : ViewModel() {
     private val _historico = MutableStateFlow<List<AirToday>>(emptyList())
     val historico: StateFlow<List<AirToday>> = _historico
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _showError = MutableStateFlow(false)
+    val showError: StateFlow<Boolean> = _showError
+
     init {
         carregarHistorico()
     }
 
     fun carregarHistorico() {
         viewModelScope.launch {
-            _historico.value = AirTodayRepository.listarHistorico()
+            try {
+                _isLoading.value = true
+                _showError.value = false
+
+                _historico.value = AirTodayRepository.listarHistorico()
+            } catch (e: Exception) {
+                _showError.value = true
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
     fun limparHistorico() {
         viewModelScope.launch {
-            AirTodayRepository.limparHistorico()
-            carregarHistorico() // 🔹 Atualiza a UI após limpar
+            try {
+                AirTodayRepository.limparHistorico()
+                carregarHistorico()
+            } catch (e: Exception) {
+                _showError.value = true
+            }
         }
     }
 }

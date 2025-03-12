@@ -22,8 +22,8 @@ fun Navigation() {
     ) {
         composable(
             route = "welcome",
-            enterTransition = { fadeIn(animationSpec = tween(500)) },
-            exitTransition = { fadeOut(animationSpec = tween(300)) }
+            enterTransition = { fadeIn(animationSpec = tween(1000)) },
+            exitTransition = { fadeOut(animationSpec = tween(2000)) }
         ) {
             BemVindoScreen(navController)
         }
@@ -48,9 +48,14 @@ fun Navigation() {
             DashboardScreen(navController, latitude, longitude)
         }
 
-        composable("historico") {
-            HistoricoScreen(navController)
+        // 🔹 Rota que recebe a cidade como argumento: "historico/{city}"
+        composable(
+            route = "historico/{city}",
+            arguments = listOf(navArgument("city") { type = NavType.StringType })
+        ) { backStackEntry ->
+            // Recupera o argumento "city"
+            val city = backStackEntry.arguments?.getString("city") ?: ""
+            HistoricoScreen(navController = navController)
         }
-
     }
 }

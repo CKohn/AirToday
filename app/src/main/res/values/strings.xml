@@ -35,6 +35,10 @@
     <string name="history_empty">No data saved yet.</string>
     <string name="clear_history">Clear History</string>
     <string name="back">Back</string>
+    <string name="history_error">Ocorreu um erro ao carregar o histórico.</string>
+    <string name="clear_history_confirm">Tem certeza de que deseja limpar o histórico?</string>
+    <string name="confirm">Confirmar</string>
+    <string name="cancel">Cancelar</string>
 
     <!-- AQI Labels -->
     <string name="aqi_good">Good</string>
