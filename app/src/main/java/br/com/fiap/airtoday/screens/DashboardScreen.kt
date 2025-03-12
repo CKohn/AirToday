@@ -7,6 +7,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +35,11 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavController, initialLatitude: Double, initialLongitude: Double) {
+fun DashboardScreen(
+    navController: NavController,
+    initialLatitude: Double,
+    initialLongitude: Double
+) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -46,11 +52,10 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
     var humidity by remember { mutableStateOf<Int?>(null) }
     var lastUpdate by remember { mutableStateOf("—") }
 
-    // Estados de carregamento e erro
+    // Loading and error states
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
 
-    // Formata data/hora
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
     fun fetchAirQualityData() {
@@ -83,7 +88,8 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
             isLoading = true
             hasError = false
             try {
-                if (ActivityCompat.checkSelfPermission(
+                if (
+                    ActivityCompat.checkSelfPermission(
                         context, Manifest.permission.ACCESS_FINE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(
@@ -117,134 +123,196 @@ fun DashboardScreen(navController: NavController, initialLatitude: Double, initi
         }
     }
 
-    // Ao entrar na tela, atualiza localização e carrega dados
+    // Carrega dados ao abrir a tela
     LaunchedEffect(Unit) {
         updateLocationAndFetchData()
     }
 
+    // Scaffold com título centralizado
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(id = R.string.dashboard_title)) })
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(id = R.string.dashboard_title)) }
+            )
         }
     ) { paddingValues ->
+        // Usamos Arrangement.SpaceEvenly para dividir o espaço vertical igualmente
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceEvenly, // Distribui espaço igualmente
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Se está carregando, mostra loading
-            if (isLoading) {
-                CircularProgressIndicator()
-            }
-            // Se deu erro, mostra mensagem de erro
-            else if (hasError) {
-                Text(
-                    text = stringResource(id = R.string.error_loading_data),
-                    fontSize = 18.sp,
-                    color = Color.Red
-                )
-            }
-            // Caso contrário, mostra o Card com dados
-            else {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.city_label) + " " +
-                                    (cityName?.ifEmpty { stringResource(id = R.string.unknown_location) } ?: ""),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = stringResource(id = R.string.latitude_longitude_label, latitude, longitude),
-                            fontSize = 14.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Se não deu erro, mas ainda não temos airQualityIndex (pode ser nulo)
-                        airQualityIndex?.let { aqi ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = when (aqi) {
-                                                1 -> listOf(Color(0xFF00E400), Color(0xFF008000))
-                                                2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00))
-                                                3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E))
-                                                4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000))
-                                                5 -> listOf(Color(0xFF800080), Color(0xFF4B0082))
-                                                else -> listOf(Color.Gray, Color.DarkGray)
-                                            }
-                                        ),
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
-                                    .padding(12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${stringResource(id = R.string.aqi_label)} $aqi",
-                                    fontSize = 22.sp,
-                                    color = Color.White
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(stringResource(id = R.string.last_update, lastUpdate), fontSize = 12.sp)
-                            Text(stringResource(id = R.string.temperature_label, temperature ?: 0.0), fontSize = 16.sp)
-                            Text(stringResource(id = R.string.humidity_label, humidity ?: 0), fontSize = 16.sp)
-                        }
-                    }
+            // 1) Verifica estado de loading/erro/dados
+            when {
+                isLoading -> {
+                    CircularProgressIndicator()
+                }
+                hasError -> {
+                    Text(
+                        text = stringResource(id = R.string.error_loading_data),
+                        fontSize = 18.sp,
+                        color = Color.Red
+                    )
+                }
+                else -> {
+                    // Card com dados, refresh embutido
+                    StatusCard(
+                        cityName = cityName ?: "",
+                        latitude = latitude,
+                        longitude = longitude,
+                        airQualityIndex = airQualityIndex,
+                        temperature = temperature,
+                        humidity = humidity,
+                        lastUpdate = lastUpdate,
+                        onRefresh = { updateLocationAndFetchData() }
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // LEGENDA
+            // 2) Legenda do AQI
             AqiLegend()
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Botão para atualizar a localização e recarregar os dados
-            Button(
-                onClick = { updateLocationAndFetchData() },
+            // 3) Botões
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(stringResource(id = R.string.refresh_data))
+                Button(
+                    onClick = {
+                        navController.navigate("historico/${cityName ?: ""}")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                ) {
+                    Text("View History")
+                }
+
+                Button(
+                    onClick = {
+                        navController.navigate("tips")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                ) {
+                    Text("Air Quality Tips")
+                }
+
+                Button(
+                    onClick = {
+                        navController.navigate("world")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+                ) {
+                    Text("Air Quality in the World")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card de status, com um IconButton para refresh no canto superior esquerdo.
+ */
+@Composable
+fun StatusCard(
+    cityName: String,
+    latitude: Double,
+    longitude: Double,
+    airQualityIndex: Int?,
+    temperature: Double?,
+    humidity: Int?,
+    lastUpdate: String,
+    onRefresh: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Ícone de refresh no canto superior esquerdo
+            IconButton(
+                onClick = onRefresh,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Refresh",
+                    tint = Color(0xFF025930)
+                )
             }
 
-            // Botão para ir ao histórico, passando o nome da cidade
-            Button(
-                onClick = {
-                    navController.navigate("historico/${cityName ?: ""}")
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
+            // Conteúdo principal
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Ver Histórico")
-            }
+                Text(
+                    text = stringResource(id = R.string.city_label) + " " +
+                            (cityName.ifEmpty { stringResource(id = R.string.unknown_location) }),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(
+                        id = R.string.latitude_longitude_label,
+                        latitude,
+                        longitude
+                    ),
+                    fontSize = 14.sp
+                )
 
-            Button(
-                onClick = { navController.navigate("tips") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF025930))
-            ) {
-                Text("Air Quality Tips")
+                airQualityIndex?.let { aqi ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = when (aqi) {
+                                        1 -> listOf(Color(0xFF00E400), Color(0xFF008000))
+                                        2 -> listOf(Color(0xFFFFFF00), Color(0xFFCCCC00))
+                                        3 -> listOf(Color(0xFFFFA500), Color(0xFFD2691E))
+                                        4 -> listOf(Color(0xFFFF0000), Color(0xFF8B0000))
+                                        5 -> listOf(Color(0xFF800080), Color(0xFF4B0082))
+                                        else -> listOf(Color.Gray, Color.DarkGray)
+                                    }
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${stringResource(id = R.string.aqi_label)} $aqi",
+                            fontSize = 22.sp,
+                            color = Color.White
+                        )
+                    }
+
+                    Text(
+                        stringResource(id = R.string.last_update, lastUpdate),
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        stringResource(id = R.string.temperature_label, temperature ?: 0.0),
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        stringResource(id = R.string.humidity_label, humidity ?: 0),
+                        fontSize = 16.sp
+                    )
+                }
             }
         }
     }
@@ -259,7 +327,10 @@ fun AqiLegend() {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F0F0))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Text(
                 text = "AQI (Air Quality Index)",
                 style = MaterialTheme.typography.titleMedium,
@@ -281,10 +352,7 @@ fun AqiLegend() {
  */
 @Composable
 fun AqiLegendItem(aqiValue: Int, label: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp)
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .size(16.dp)

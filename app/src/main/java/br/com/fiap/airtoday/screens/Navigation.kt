@@ -52,6 +52,10 @@ fun Navigation() {
             TipsScreen(navController = navController)
         }
 
+        composable("world") {
+            WorldAirQualityScreen(navController = navController)
+        }
+
         // 🔹 Rota que recebe a cidade como argumento: "historico/{city}"
         composable(
             route = "historico/{city}",

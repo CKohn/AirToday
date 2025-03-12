@@ -50,7 +50,7 @@ fun BemVindoScreen(navController: NavController) {
 
                     // 🔹 AQUI: Espera 2 segundos antes de navegar
                     coroutineScope.launch {
-                        delay(3000) // 2000 ms = 2s
+                        delay(2000) // 2000 ms = 2s
                         navController.navigate("dashboard/${location.latitude}/${location.longitude}")
                     }
                 }
