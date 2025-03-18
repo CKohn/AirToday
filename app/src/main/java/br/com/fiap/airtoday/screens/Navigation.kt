@@ -48,12 +48,18 @@ fun Navigation() {
             DashboardScreen(navController, latitude, longitude)
         }
 
-        // 🔹 Rota que recebe a cidade como argumento: "historico/{city}"
+        composable("tips") {
+            TipsScreen(navController = navController)
+        }
+
+        composable("world") {
+            WorldAirQualityScreen(navController = navController)
+        }
+
         composable(
             route = "historico/{city}",
             arguments = listOf(navArgument("city") { type = NavType.StringType })
         ) { backStackEntry ->
-            // Recupera o argumento "city"
             val city = backStackEntry.arguments?.getString("city") ?: ""
             HistoricoScreen(navController = navController)
         }
